@@ -64,40 +64,32 @@ This step creates a configuration profile (`~/.databrickscfg`) that the Databric
 
 ### 4. Create a Python Virtual Environment
 
-It's crucial to use a virtual environment to isolate project dependencies.
+It's crucial to use a virtual environment to isolate project dependencies. We'll use `uv`, a fast Python package manager.
 
-*   **Using `uv` (Recommended - Faster):**
-    `uv` is a very fast Python package installer and resolver.
+1.  **Install `uv` (if you don't have it):**
     ```bash
-    # Install uv (if you don't have it)
     brew install uv
-
-    # Create a virtual environment named .venv
-    uv venv .venv
-
-    # Activate the environment
-    source .venv/bin/activate
     ```
-*   **Using standard `venv` (Built-in):**
-    ```bash
-    # Create a virtual environment named .venv
-    python3 -m venv .venv
 
-    # Activate the environment
+2.  **Create the virtual environment:**
+    This command creates a `.venv` directory and uses Python 3.11 if available.
+    ```bash
+    uv venv --python 3.11
+    ```
+
+3.  **Activate the environment:**
+    ```bash
     source .venv/bin/activate
     ```
     You should see `(.venv)` prepended to your terminal prompt after activation.
 
 ### 5. Install Dependencies
 
-Install the required Python libraries (`databricks-sdk` and `databricks-connect`) into your active virtual environment.
+Install the required Python libraries (`databricks-sdk` and `databricks-connect`) specified in `pyproject.toml` into your active virtual environment using `uv sync`.
 
 ```bash
-# If using uv
-uv pip install -r requirements.txt
-
-# If using standard venv/pip
-pip install -r requirements.txt
+# Make sure your venv is active first!
+uv sync
 ```
 
 ### 6. Configure Cursor Python Interpreter
@@ -114,7 +106,13 @@ Cursor will now use this environment for running Python code, providing code int
 
 ## Running the Sample Script
 
-With your virtual environment activated (`source .venv/bin/activate`) and dependencies installed, run the test script:
+With your virtual environment activated (`source .venv/bin/activate`) and dependencies installed via `uv sync`, run the validation script first:
+
+```bash
+python validate_config.py
+```
+
+If the validation script succeeds, you can run the simpler example:
 
 ```bash
 python hello_databricks.py
@@ -122,8 +120,7 @@ python hello_databricks.py
 
 ## Expected Output
 
-If everything is set up correctly, you should see output similar to this:
-
+**For `validate_config.py`:**
 ```
 Attempting to connect to Databricks...
 Spark Session created.
@@ -135,7 +132,8 @@ Query executed successfully.
 
 ## Troubleshooting
 
-*   **`ImportError: No module named databricks...`:** Ensure your virtual environment is activated (`source .venv/bin/activate`) and you've installed dependencies (`pip install -r requirements.txt`). Check that Cursor is using the correct interpreter.
+*   **`ImportError: No module named databricks...`:** Ensure your virtual environment is activated (`source .venv/bin/activate`) and you've installed dependencies (`uv sync`). Check that Cursor is using the correct interpreter (`.venv/bin/python`).
 *   **`PermissionDenied` / `NotFound` / Authentication Errors:** Double-check your Databricks host in `~/.databrickscfg` under the `[DEFAULT]` profile. Re-run `databricks configure --profile DEFAULT` if you suspect authentication issues. Ensure your user has the necessary permissions in the Databricks workspace.
 *   **Connection Timeouts / Network Errors:** Verify your network connection to the Databricks workspace URL. Check if the cluster or SQL warehouse Databricks Connect is trying to use is running and accessible.
-*   **`ValueError: serverless_compute_id must be set...` (or similar):** Make sure you added `serverless_compute_id = auto` correctly to your `[DEFAULT]` profile in `~/.databrickscfg`. 
+*   **`ValueError: serverless_compute_id must be set...` (or similar):** Make sure you added `serverless_compute_id = auto` correctly to your `[DEFAULT]` profile in `~/.databrickscfg`.
+*   **`Cluster id is required but was not specified` Error:** This typically means Databricks Connect could not automatically determine a compute resource. Ensure `serverless_compute_id = auto` is correctly added to your `[DEFAULT]` profile in `~/.databrickscfg`. This setting allows Connect to use available Serverless compute for interactive sessions. Verify your user/workspace has access to Serverless compute. 

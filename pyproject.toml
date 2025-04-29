@@ -1,0 +1,9 @@
+[project]
+name = "cursor-databricks-starter"
+version = "0.1.0"
+description = "Example project for using Databricks Connect with Cursor."
+requires-python = ">=3.11,<3.12" # Specify Python 3.11 explicitly
+dependencies = [
+    "databricks-sdk",
+    "databricks-connect"
+] 

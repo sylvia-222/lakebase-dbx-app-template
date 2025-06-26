@@ -1,5 +1,7 @@
 # Python virtual environment
 .venv/
+venv/
+uv.lock
 
 # Python cache files
 __pycache__/

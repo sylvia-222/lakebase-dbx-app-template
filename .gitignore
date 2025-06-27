@@ -10,4 +10,8 @@ __pycache__/
 *.pyd
 
 # OS-specific files
-.DS_Store 
+.DS_Store
+
+# Ignore OLTP database management scripts
+oltp_db_*.sh
+oltp_db_connect.py 

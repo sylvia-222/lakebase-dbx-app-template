@@ -1,0 +1,4 @@
+app:
+  name: sylvia-test-app-123
+  type: gradio
+  entrypoint: gradio_app.py 

@@ -1,7 +1,33 @@
 import streamlit as st
-import psycopg2
 import pandas as pd
-import os
+import time
+from databricks import sdk
+from databricks.sdk.core import Config
+from sqlalchemy import create_engine, event, text
+
+# Databricks config.
+app_config = Config()
+workspace_client = sdk.WorkspaceClient()
+
+# PostgreSQL config to connect to your database.
+postgres_username = app_config.client_id
+postgres_host = "instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com"
+postgres_port = 5432
+postgres_database = "ssylvia_postgres_database"
+
+# sqlalchemy setup + function to refresh the OAuth token that gets used as the PostgreSQL password every 15 minutes.
+postgres_pool = create_engine(f"postgresql+psycopg://{postgres_username}:@{postgres_host}:{postgres_port}/{postgres_database}")
+postgres_password = None
+last_password_refresh = time.time()
+
+@event.listens_for(postgres_pool, "do_connect")
+def provide_token(dialect, conn_rec, cargs, cparams):
+    global postgres_password, last_password_refresh
+    if postgres_password is None or time.time() - last_password_refresh > 900:
+        print("Refreshing PostgreSQL OAuth token")
+        postgres_password = workspace_client.config.oauth_token().access_token
+        last_password_refresh = time.time()
+    cparams["password"] = postgres_password
 
 # Page configuration
 st.set_page_config(
@@ -10,78 +36,47 @@ st.set_page_config(
     layout="wide"
 )
 
-def get_database_connection():
-    """Get connection to the PostgreSQL database using hardcoded parameters for local testing"""
-    try:
-        conn_params = {
-            'host': 'instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com',
-            'user': os.environ.get('DB_USER', 'default_user'),
-            'password': os.environ.get('DB_PASSWORD', 'default_password'),
-            'dbname': 'ssylvia_postgres_database',
-            'port': 5432,
-            'sslmode': 'require'
-        }
-        return psycopg2.connect(**conn_params)
-    except Exception as e:
-        st.error(f"Error connecting to database: {e}")
-        return None
-
 def get_campaign_data(limit=100):
-    """Fetch data from the synced table"""
+    """Fetch data from the synced table using SQLAlchemy engine"""
     try:
-        conn = get_database_connection()
-        if conn is None:
-            return None
-        
-        query = f"""
-        SELECT * FROM adtech_bootcamp.campaign_performance_synced_from_copy 
-        LIMIT {limit}
-        """
-        df = pd.read_sql_query(query, conn)
-        conn.close()
+        with postgres_pool.connect() as conn:
+            query = f"""
+            SELECT * FROM adtech_bootcamp.campaign_performance_synced_from_copy 
+            LIMIT {limit}
+            """
+            df = pd.read_sql_query(query, conn)
         return df
     except Exception as e:
         st.error(f"Error fetching data: {str(e)}")
         return None
 
 def get_table_info():
-    """Get information about the synced table"""
+    """Get information about the synced table using SQLAlchemy engine"""
     try:
-        conn = get_database_connection()
-        if conn is None:
-            return None
-        
-        query = """
-        SELECT 
-            column_name,
-            data_type,
-            is_nullable,
-            column_default
-        FROM information_schema.columns 
-        WHERE table_schema = 'adtech_bootcamp' AND table_name = 'campaign_performance_synced_from_copy'
-        ORDER BY ordinal_position
-        """
-        df = pd.read_sql_query(query, conn)
-        conn.close()
+        with postgres_pool.connect() as conn:
+            query = """
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default
+            FROM information_schema.columns 
+            WHERE table_schema = 'adtech_bootcamp' AND table_name = 'campaign_performance_synced_from_copy'
+            ORDER BY ordinal_position
+            """
+            df = pd.read_sql_query(query, conn)
         return df
     except Exception as e:
         st.error(f"Error fetching table info: {str(e)}")
         return None
 
 def get_row_count():
-    """Get the total number of rows in the synced table"""
+    """Get the total number of rows in the synced table using SQLAlchemy engine"""
     try:
-        conn = get_database_connection()
-        if conn is None:
-            return None
-        
-        query = "SELECT COUNT(*) as total_rows FROM adtech_bootcamp.campaign_performance_synced_from_copy"
-        cursor = conn.cursor()
-        cursor.execute(query)
-        count = cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
-        return count
+        with postgres_pool.connect() as connection:
+            query = "SELECT COUNT(*) as total_rows FROM adtech_bootcamp.campaign_performance_synced_from_copy"
+            result = connection.execute(text(query)).scalar()
+        return result
     except Exception as e:
         st.error(f"Error getting row count: {str(e)}")
         return None
@@ -97,7 +92,7 @@ def get_summary_stats(df):
 
 def main():
     # Header
-    st.title("📊 Campaign Performance Data Viewer (Local Test)")
+    st.title("📊 Campaign Performance Data Viewer")
     st.markdown("This app displays data from the `adtech_bootcamp.campaign_performance_synced_from_copy` table in your PostgreSQL database.")
     
     # Sidebar for controls

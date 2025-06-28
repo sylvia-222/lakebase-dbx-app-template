@@ -1,1 +1,4 @@
-gradio 
+gradio
+psycopg2-binary
+pandas
+databricks-sdk 

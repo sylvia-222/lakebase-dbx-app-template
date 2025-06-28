@@ -1,4 +1,14 @@
 app:
-  name: sylvia-test-app-123
-  type: gradio
-  entrypoint: gradio_app.py 
+  name: sylvia-human-review-v2
+  type: streamlit
+  entrypoint: streamlit_app.py
+  environment_variables:
+    DB_HOST: "instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com"
+    DB_NAME: "ssylvia_postgres_database"
+    DB_PORT: "5432"
+
+resource_type: project
+resources:
+  apps:
+    human-review-app-v2:
+      path: ./streamlit_app.py 

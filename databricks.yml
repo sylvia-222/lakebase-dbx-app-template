@@ -1,11 +1,11 @@
 bundle:
-  name: sylvia-fresh-gradio-app
+  name: sylvia-human-review-v2
 
 targets:
   development:
     default: true
     resources:
       apps:
-        gradio-app:
-          name: sylvia-fresh-gradio-app-2024
+        human-review-app-v2:
+          name: sylvia-human-review-v2
           source_code_path: .

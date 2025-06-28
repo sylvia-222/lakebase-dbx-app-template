@@ -1,4 +1,4 @@
-gradio
-psycopg2-binary
+streamlit
+psycopg2
 pandas
-databricks-sdk 
+SQLAlchemy 

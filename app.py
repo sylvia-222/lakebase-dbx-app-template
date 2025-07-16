@@ -11,7 +11,7 @@ workspace_client = sdk.WorkspaceClient()
 
 # PostgreSQL config to connect to your database.
 postgres_username = app_config.client_id
-postgres_host = "instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com"
+postgres_host = "instance-09113609-d4e3-472e-9fdf-c330df320286.database.cloud.databricks.com"
 postgres_port = 5432
 postgres_database = "ssylvia_postgres_database"
 
@@ -40,7 +40,7 @@ def get_campaign_data(limit=1000):
     try:
         with postgres_pool.connect() as conn:
             query = f"""
-            SELECT * FROM adtech_bootcamp.campaign_performance_synced_from_copy 
+            SELECT * FROM adtech_bootcamp.campaigns_synced
             LIMIT {limit}
             """
             df = pd.read_sql_query(query, conn)
@@ -60,7 +60,7 @@ def get_table_info():
                 is_nullable,
                 column_default
             FROM information_schema.columns 
-            WHERE table_schema = 'adtech_bootcamp' AND table_name = 'campaign_performance_synced_from_copy'
+            WHERE table_schema = 'adtech_bootcamp' AND table_name = 'campaigns_synced'
             ORDER BY ordinal_position
             """
             df = pd.read_sql_query(query, conn)
@@ -73,7 +73,7 @@ def get_row_count():
     """Get the total number of rows in the synced table using SQLAlchemy engine"""
     try:
         with postgres_pool.connect() as connection:
-            query = "SELECT COUNT(*) as total_rows FROM adtech_bootcamp.campaign_performance_synced_from_copy"
+            query = "SELECT COUNT(*) as total_rows FROM adtech_bootcamp.campaigns_synced"
             result = connection.execute(text(query)).scalar()
         return result
     except Exception as e:
@@ -93,7 +93,7 @@ def update_campaign_record(row_id, new_device_type, new_performance_tier):
     try:
         with postgres_pool.connect() as conn:
             update_query = text("""
-                UPDATE adtech_bootcamp.campaign_performance_synced_from_copy
+                UPDATE adtech_bootcamp.campaigns_synced
                 SET device_type = :device_type, performance_tier = :performance_tier
                 WHERE primary_key = :row_id
             """)
@@ -110,7 +110,7 @@ def update_campaign_record(row_id, new_device_type, new_performance_tier):
 
 def main():
     st.title("📊 Campaign Performance Data Viewer")
-    st.markdown("This app displays data from the `adtech_bootcamp.campaign_performance_synced_from_copy` table in your PostgreSQL database.")
+    st.markdown("This app displays data from the `adtech_bootcamp.campaigns_synced` table in your PostgreSQL database.")
 
     # Top row: Refresh button on the right
     top_left, top_right = st.columns([6, 1])

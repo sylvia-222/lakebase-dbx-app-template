@@ -1,5 +1,5 @@
 bundle:
-  name: sylvia-human-review-v2
+  name: sylvia-human-review-v3
 
 targets:
   development:
@@ -7,5 +7,5 @@ targets:
     resources:
       apps:
         human-review-app-v2:
-          name: sylvia-human-review-v2
+          name: sylvia-human-review-v3
           source_code_path: .

@@ -1,5 +1,5 @@
 streamlit>=1.32.0
 psycopg[binary]
 pandas
-SQLAlchemy
+sqlalchemy
 databricks-sdk 

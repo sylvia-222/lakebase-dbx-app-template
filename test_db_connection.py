@@ -7,19 +7,24 @@ import psycopg2
 import pandas as pd
 import os
 
+# Table configuration - single source of truth
+TABLE_SCHEMA = os.getenv('TABLE_SCHEMA')
+TABLE_NAME = os.getenv('TABLE_NAME')
+FULL_TABLE_NAME = f"{TABLE_SCHEMA}.{TABLE_NAME}"
+
 def test_connection():
     """Test connection to the PostgreSQL database"""
-    hostname = os.getenv('DB_HOST', 'instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com')
+    hostname = os.getenv('DB_HOST')
     print(f"🔍 Testing PostgreSQL database connection to {hostname}...")
     print("=" * 60)
     
     # Connection parameters
     conn_params = {
         'host': hostname,
-        'user': os.getenv('DB_USER', 'sylvia.schumacher@databricks.com'),
+        'user': os.getenv('DB_USER'),
         'password': os.getenv('DB_PASSWORD', ''),
-        'dbname': os.getenv('DB_NAME', 'ssylvia_postgres_database'),
-        'port': int(os.getenv('DB_PORT', '5432')),
+        'dbname': os.getenv('DB_NAME'),
+        'port': int(os.getenv('DB_PORT')) if os.getenv('DB_PORT') else 5432,
         'sslmode': 'require'
     }
     
@@ -44,11 +49,11 @@ def test_connection():
         print(f"🔧 PostgreSQL version: {result[2].split(',')[0]}")
         
         # Find the table in all schemas
-        print("\n🔍 Searching for synced table in all schemas...")
-        cursor.execute("""
+        print(f"\n🔍 Searching for {TABLE_NAME} table in all schemas...")
+        cursor.execute(f"""
             SELECT table_schema, table_name 
             FROM information_schema.tables 
-            WHERE table_name = 'campaign_performance_synced_from_copy'
+            WHERE table_name = '{TABLE_NAME}'
             ORDER BY table_schema
         """)
         
@@ -105,7 +110,7 @@ def test_connection():
                         print(f"    {column_names[j]}: {value}")
                     print()
         else:
-            print("❌ Table 'campaign_performance_synced_from_copy' not found in any schema!")
+            print(f"❌ Table '{TABLE_NAME}' not found in any schema!")
             
             # List all tables
             print("\n📋 Available tables:")

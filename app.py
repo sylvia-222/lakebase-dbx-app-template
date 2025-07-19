@@ -5,15 +5,29 @@ from databricks import sdk
 from databricks.sdk.core import Config
 from sqlalchemy import create_engine, event, text
 
+# Database Configuration - Single source of truth
+DB_CONFIG = {
+    "host": "instance-6c327749-9099-438a-bb41-2b449db36668.database.cloud.databricks.com",  # Original working format
+    "port": 5432,  
+    "database": "ssylvia_postgres_database",
+    "schema": "testing_schema", 
+    "table": "people_synced"
+}
+
 # Databricks config.
 app_config = Config()
 workspace_client = sdk.WorkspaceClient()
 
-# PostgreSQL config to connect to your database.
+# PostgreSQL config to connect to your database - match original pattern
 postgres_username = app_config.client_id
-postgres_host = "instance-09113609-d4e3-472e-9fdf-c330df320286.database.cloud.databricks.com"
-postgres_port = 5432
-postgres_database = "ssylvia_postgres_database"
+postgres_host = DB_CONFIG["host"]
+postgres_port = DB_CONFIG["port"]
+postgres_database = DB_CONFIG["database"]
+
+# Validate configuration
+if not postgres_host or not postgres_port or not postgres_database:
+    st.error("❌ Database configuration is incomplete")
+    st.stop()
 
 # sqlalchemy setup + function to refresh the OAuth token that gets used as the PostgreSQL password every 15 minutes.
 postgres_pool = create_engine(f"postgresql+psycopg://{postgres_username}:@{postgres_host}:{postgres_port}/{postgres_database}")
@@ -29,219 +43,143 @@ def provide_token(dialect, conn_rec, cargs, cparams):
         last_password_refresh = time.time()
     cparams["password"] = postgres_password
 
-# Page configuration
-st.set_page_config(
-    page_title="Campaign Performance Data Viewer",
-    page_icon="📊",
-    layout="wide"
-)
-
-def get_campaign_data(limit=1000):
+def get_table_data():
+    """Fetch data from the configured table."""
     try:
+        schema = DB_CONFIG["schema"]
+        table = DB_CONFIG["table"]
+        
         with postgres_pool.connect() as conn:
-            query = f"""
-            SELECT * FROM adtech_bootcamp.campaigns_synced
-            LIMIT {limit}
-            """
+            query = f"SELECT * FROM {schema}.{table}"
             df = pd.read_sql_query(query, conn)
         return df
+        
     except Exception as e:
-        st.error(f"Error fetching data: {str(e)}")
+        st.error(f"Failed to fetch data: {e}")
         return None
 
-def get_table_info():
-    """Get information about the synced table using SQLAlchemy engine"""
-    try:
-        with postgres_pool.connect() as conn:
-            query = """
-            SELECT 
-                column_name,
-                data_type,
-                is_nullable,
-                column_default
-            FROM information_schema.columns 
-            WHERE table_schema = 'adtech_bootcamp' AND table_name = 'campaigns_synced'
-            ORDER BY ordinal_position
-            """
-            df = pd.read_sql_query(query, conn)
-        return df
-    except Exception as e:
-        st.error(f"Error fetching table info: {str(e)}")
+def get_table_key_column(df):
+    """Dynamically detect the key column for the table."""
+    if df is None or df.empty:
         return None
-
-def get_row_count():
-    """Get the total number of rows in the synced table using SQLAlchemy engine"""
-    try:
-        with postgres_pool.connect() as connection:
-            query = "SELECT COUNT(*) as total_rows FROM adtech_bootcamp.campaigns_synced"
-            result = connection.execute(text(query)).scalar()
-        return result
-    except Exception as e:
-        st.error(f"Error getting row count: {str(e)}")
-        return None
+        
+    # Check for common key column names
+    possible_keys = ['primary_key', 'id', 'key', 'pk']
+    
+    for key in possible_keys:
+        if key in df.columns:
+            return key
+    
+    # If no standard key found, use the first column
+    if len(df.columns) > 0:
+        return df.columns[0]
+    
+    return None
 
 def get_summary_stats(df):
     """Calculate summary statistics for numeric columns"""
     if df is None or df.empty:
         return None
-    
+        
     numeric_cols = df.select_dtypes(include=['number']).columns
-    summary = df[numeric_cols].describe()
-    return summary
+    if len(numeric_cols) > 0:
+        summary = df[numeric_cols].describe()
+        return summary
+    return None
 
-def update_campaign_record(row_id, new_device_type, new_performance_tier):
+def get_row_count():
+    """Get the total number of rows in the table"""
+    try:
+        schema = DB_CONFIG["schema"]
+        table = DB_CONFIG["table"]
+        
+        with postgres_pool.connect() as conn:
+            query = f"SELECT COUNT(*) as total_rows FROM {schema}.{table}"
+            result = conn.execute(text(query)).scalar()
+        return result
+    except Exception as e:
+        st.error(f"Error getting row count: {str(e)}")
+        return None
+
+# Page configuration
+st.set_page_config(
+    page_title="Database Table Viewer",
+    page_icon="📊",
+    layout="wide"
+)
+
+# Header with connection info scorecard
+header_left, header_right = st.columns([2, 1])
+
+with header_left:
+    st.title("📊 Database Table Viewer")
+
+with header_right:
+    # Connection info scorecard
+    st.markdown("""
+    <div style='background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+                padding: 1rem; border-radius: 10px; color: white; margin-top: 1rem;'>
+        <div style='font-size: 0.8rem; opacity: 0.9;'>Connected to</div>
+        <div style='font-size: 1rem; font-weight: bold; margin: 0.2rem 0;'>{}</div>
+        <div style='font-size: 0.8rem; opacity: 0.9;'>Database: <strong>{}</strong></div>
+        <div style='font-size: 0.8rem; opacity: 0.9;'>Table: <strong>{}.{}</strong></div>
+    </div>
+    """.format(
+        postgres_host.split('.')[0],  # Short hostname
+        postgres_database,
+        DB_CONFIG['schema'],
+        DB_CONFIG['table']
+    ), unsafe_allow_html=True)
+
+# Test connection button
+if st.button("🔄 Test Connection"):
     try:
         with postgres_pool.connect() as conn:
-            update_query = text("""
-                UPDATE adtech_bootcamp.campaigns_synced
-                SET device_type = :device_type, performance_tier = :performance_tier
-                WHERE primary_key = :row_id
-            """)
-            conn.execute(update_query, {
-                "device_type": new_device_type,
-                "performance_tier": new_performance_tier,
-                "row_id": row_id
-            })
-            conn.commit()
-        return True
+            st.success("✅ Connection successful!")
     except Exception as e:
-        st.error(f"Error updating record: {str(e)}")
-        return False
+        st.error(f"❌ Connection failed: {e}")
 
-def main():
-    st.title("📊 Campaign Performance Data Viewer")
-    st.markdown("This app displays data from the `adtech_bootcamp.campaigns_synced` table in your PostgreSQL database.")
+st.markdown("---")
 
-    # Top row: Refresh button on the right
-    top_left, top_right = st.columns([6, 1])
-    with top_right:
-        if st.button("🔄 Refresh Data", type="primary"):
-            st.rerun()
+# Main layout: left column for data, right column for statistics
+left_col, right_col = st.columns([2, 1])
 
-    # Two large columns: left (table, quick stats), buffer, right (update campaign data)
-    left_col, buffer_col, right_col = st.columns([2, 0.15, 1])
+with left_col:
+    st.subheader("📋 Table Data")
+    
+    # Load and display data
+    with st.spinner("Loading data..."):
+        df = get_table_data()
+    
+    if df is not None and not df.empty:
+        st.success(f"✅ Successfully loaded {len(df)} rows")
+        
+        # Display the data
+        st.dataframe(df, use_container_width=True, height=600)
+        
+    else:
+        st.warning("⚠️ No data found or table is empty")
 
-    with left_col:
-        st.subheader("📋 Campaign Performance Data")
-        # Load data with selected limit
-        with st.spinner("Loading data..."):
-            df = get_campaign_data()
-
-        if df is None or df.empty:
-            st.error("❌ No data found or error loading data")
-            return
-
-        # Show primary key as first column and sort by primary key ascending
-        df_display = df.copy()
-        cols = list(df_display.columns)
-        if 'primary_key' in cols:
-            cols.insert(0, cols.pop(cols.index('primary_key')))
-        df_display = df_display[cols]
-        df_display = df_display.sort_values(by='primary_key', ascending=True).reset_index(drop=True)
-        primary_keys = df_display['primary_key'].tolist()
-        selected_pk = st.selectbox(
-            "Select a campaign primary key to view/edit:",
-            options=primary_keys,
-            format_func=lambda x: str(x),
-            key="select_pk"
-        )
-        st.dataframe(df_display, use_container_width=True)
-
-        st.markdown("<h4 style='margin-top:2em'>📊 Quick Stats</h4>", unsafe_allow_html=True)
-        quick_col1, quick_col2, quick_col3 = st.columns(3)
-        with quick_col1:
-            summary_stats = get_summary_stats(df)
-            if summary_stats is not None:
-                st.subheader("📈 Numeric Summary")
-                st.dataframe(summary_stats, use_container_width=True)
-        with quick_col2:
-            if 'performance_tier' in df.columns:
-                st.subheader("🏆 Performance Tier Distribution")
-                tier_counts = df['performance_tier'].value_counts()
-                st.bar_chart(tier_counts)
-        with quick_col3:
-            if 'publisher' in df.columns:
-                st.subheader("📰 Publisher Distribution")
-                publisher_counts = df['publisher'].value_counts()
-                st.bar_chart(publisher_counts)
-
-    with buffer_col:
-        st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
-
-    with right_col:
-        row_data = df_display[df_display['primary_key'] == selected_pk].iloc[0]
-        st.subheader("Update Campaign Data")
-        st.markdown("---")
-        st.subheader("🔎 Selected Campaign Record")
-        # Visually rich campaign view with primary key
-        col1, col2, col3 = st.columns([1.5, 1.5, 1])
+with right_col:
+    st.subheader("📊 Table Statistics")
+    
+    if df is not None and not df.empty:
+        # Basic info metrics
+        col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"<h3 style='margin-bottom:0'>🔑 <span style='color:#e67e22'>Primary Key: {row_data.get('primary_key', 'N/A')}</span></h3>", unsafe_allow_html=True)
-            st.markdown(f"<b>📰 Publisher:</b> <span style='color:#6c757d'>{row_data.get('publisher', 'N/A')}</span>", unsafe_allow_html=True)
-            device_icon = "📱" if row_data.get('device_type', '').lower() == 'mobile' else ("💻" if row_data.get('device_type', '').lower() == 'desktop' else "🖥️")
-            st.markdown(f"<b>{device_icon} Device Type:</b> <span style='color:#2ca02c'>{row_data.get('device_type', 'N/A')}</span>", unsafe_allow_html=True)
-            tier_icon = "🏆" if row_data.get('performance_tier', '').lower() == 'top' else ("⭐" if row_data.get('performance_tier', '').lower() == 'mid' else "🔸")
-            st.markdown(f"<b>{tier_icon} Performance Tier:</b> <span style='color:#f39c12'>{row_data.get('performance_tier', 'N/A')}</span>", unsafe_allow_html=True)
+            st.metric("Total Rows", f"{len(df):,}")
         with col2:
-            st.metric("💰 Spend", f"${row_data.get('spend', 0):,.2f}")
-            st.metric("👁️ Impressions", f"{row_data.get('impressions', 0):,}")
-            st.metric("🖱️ Clicks", f"{row_data.get('clicks', 0):,}")
-            ctr = row_data.get('ctr', None)
-            if ctr is not None:
-                st.metric("📈 CTR", f"{ctr:.2%}")
-        with col3:
-            if 'start_date' in row_data:
-                st.markdown(f"<b>🗓️ Start:</b> <span style='color:#17a2b8'>{row_data.get('start_date', 'N/A')}</span>", unsafe_allow_html=True)
-            if 'end_date' in row_data:
-                st.markdown(f"<b>🗓️ End:</b> <span style='color:#17a2b8'>{row_data.get('end_date', 'N/A')}</span>", unsafe_allow_html=True)
-            if 'status' in row_data:
-                status_color = '#28a745' if str(row_data.get('status', '')).lower() == 'active' else '#dc3545'
-                st.markdown(f"<b>🔔 Status:</b> <span style='color:{status_color}'>{row_data.get('status', 'N/A')}</span>", unsafe_allow_html=True)
-        st.markdown("<hr>", unsafe_allow_html=True)
-
-        # Editable fields in a column
-        st.markdown("### ✏️ Update Campaign Fields")
-        edit_col1, edit_col2 = st.columns(2)
-        device_type_options = df["device_type"].dropna().unique().tolist() if "device_type" in df.columns else []
-        performance_tier_options = df["performance_tier"].dropna().unique().tolist() if "performance_tier" in df.columns else []
-        with st.form("edit_form"):
-            with edit_col1:
-                new_device_type = st.selectbox(
-                    "Device Type", device_type_options,
-                    index=device_type_options.index(row_data["device_type"]) if row_data["device_type"] in device_type_options else 0,
-                    key=f"device_type_{row_data['primary_key']}"
-                ) if device_type_options else st.text_input("Device Type", value=row_data.get("device_type", ""), key=f"device_type_{row_data['primary_key']}")
-            with edit_col2:
-                new_performance_tier = st.selectbox(
-                    "Performance Tier", performance_tier_options,
-                    index=performance_tier_options.index(row_data["performance_tier"]) if row_data["performance_tier"] in performance_tier_options else 0,
-                    key=f"performance_tier_{row_data['primary_key']}"
-                ) if performance_tier_options else st.text_input("Performance Tier", value=row_data.get("performance_tier", ""), key=f"performance_tier_{row_data['primary_key']}")
-            submitted = st.form_submit_button("Update Record", use_container_width=True)
-
-        if submitted:
-            success = update_campaign_record(row_data["primary_key"], new_device_type, new_performance_tier)
-            if success:
-                st.success("Record updated successfully!")
-                st.rerun()
-            else:
-                st.error("Failed to update record.")
-
-    # Main content area (row count, table schema, etc.)
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.header("📈 Data Overview")
-        row_count = get_row_count()
-        if row_count is not None:
-            st.metric("Total Rows", f"{row_count:,}")
-    st.header("📋 Table Schema")
-    if st.button("🔍 Show Table Schema"):
-        with st.spinner("Loading schema information..."):
-            schema_df = get_table_info()
-        if schema_df is not None and not schema_df.empty:
-            st.dataframe(schema_df, use_container_width=True)
-        else:
-            st.error("❌ Could not load table schema")
-
-if __name__ == "__main__":
-    main() 
+            st.metric("Columns", len(df.columns))
+        
+        # Key column info
+        key_col = get_table_key_column(df)
+        if key_col:
+            st.info(f"🔑 **Key Column:** `{key_col}`")
+        
+        # Show numeric summary directly (without title)
+        summary_stats = get_summary_stats(df)
+        if summary_stats is not None:
+            st.dataframe(summary_stats, use_container_width=True)
+        
+    else:
+        st.info("Load data to see statistics") 

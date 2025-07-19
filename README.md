@@ -1,54 +1,152 @@
-# Campaign Performance Data Viewer
+# Lakebase Streamlit App
 
-A functional Streamlit app that displays data from a PostgreSQL database synced table in Databricks.
+A Streamlit application for viewing and exploring PostgreSQL database tables synced with Databricks Lakebase. This app provides a clean interface for database table visualization with statistics and data exploration features.
 
 ## Features
 
-- 📊 **Data Display**: Shows campaign performance data from the synced table
-- 📋 **Table Schema**: Displays column information and data types
-- 📈 **Row Count**: Shows total number of rows in the table
-- 🔄 **Refresh Functionality**: Button to refresh data
-- 📊 **Interactive Charts**: Performance tier and publisher distribution charts
-- 🔍 **Data Filters**: Filter data by performance tier, publisher, and region
-- 📥 **Data Download**: Download filtered data as CSV
-- 📈 **Summary Statistics**: Numeric summary statistics for all numeric columns
+- 🔗 **PostgreSQL Database Connection** - Connects to Databricks Lakebase PostgreSQL instances using OAuth authentication
+- 📊 **Data Visualization** - Two-column layout with table data and statistics
+- 📈 **Table Statistics** - Automatic key column detection, row counts, and numeric summaries
+- 🎨 **Modern UI** - Clean Streamlit interface with gradient connection scorecard
+- ⚡ **Auto Token Refresh** - Handles Databricks OAuth token refresh automatically
 
-## Database Connection
+## Quick Start
 
-The app connects to a PostgreSQL database in Databricks OLTP. Set the following environment variables:
+### Prerequisites
+- Databricks workspace access
+- Databricks CLI installed and configured
+- Access to a PostgreSQL database instance (Lakebase)
 
-```bash
-export DB_HOST="instance-95946f75-1682-4d20-b279-0e9fcb954310.database.cloud.databricks.com"
-export DB_USER="sylvia.schumacher@databricks.com"
-export DB_PASSWORD="your_jwt_token_here"
-export DB_NAME="ssylvia_postgres_database"
-export DB_PORT="5432"
+### Deployment
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/sylvia-222/lakebase_in_apps.git
+   cd lakebase_in_apps
+   ```
+
+2. **Configure your database connection** (see [Database Configuration](#database-configuration) below)
+
+3. **Deploy using Databricks Asset Bundles:**
+   ```bash
+   databricks bundle deploy
+   ```
+
+4. **Access your app:**
+   Your app will be available at the URL shown in the deployment output.
+
+## Database Configuration
+
+To connect to your own PostgreSQL database, update the `DB_CONFIG` section in `app.py`:
+
+```python
+# Database Configuration - Single source of truth
+DB_CONFIG = {
+    "host": "your-instance-hostname.database.cloud.databricks.com",  # Your PostgreSQL host
+    "port": 5432,  
+    "database": "your_database_name",      # Your database name
+    "schema": "your_schema",               # Your schema name
+    "table": "your_table_name"             # Your table name
+}
 ```
 
-## Table Information
+### Required Changes for Different Databases:
 
-- **Schema**: `adtech_bootcamp`
-- **Table**: `campaign_performance_synced_from_copy`
-- **Columns**: 21 columns including campaign_id, week_start, performance_tier, publisher, region, device_type, ad_type, impressions, clicks, CTR, conversions, conversion_rate, cost, CPC, budget, revenue, ROAS, target_CTR, target_CR, platform_ratios, primary_key
-- **Data**: 50,000 rows of campaign performance data
+1. **Host**: Update with your PostgreSQL instance hostname
+   - Format: `instance-xxxxx.database.cloud.databricks.com`
+   - Remove any `https://` prefix or trailing `/`
 
-## Deployment
+2. **Database**: Change to your target database name
 
-The app is deployed on Databricks using Asset Bundles (DABs) and can be accessed at:
-https://sylvia-streamlit-app-2024-1444828305810485.aws.databricksapps.com
+3. **Schema**: Update to your target schema name
 
-## Local Development
+4. **Table**: Specify the table you want to visualize
 
-1. Install dependencies: `pip install -r requirements.txt`
-2. Set environment variables for database connection
-3. Run the app: `streamlit run streamlit_app.py`
-4. Test database connection: `python test_db_connection.py`
+### Example Configuration:
+```python
+DB_CONFIG = {
+    "host": "instance-12345678-abcd-efgh-ijkl-123456789012.database.cloud.databricks.com",
+    "port": 5432,
+    "database": "my_analytics_db",
+    "schema": "sales_data", 
+    "table": "customer_metrics"
+}
+```
+
+## File Structure
+
+```
+├── app.py                 # Main Streamlit application
+├── app.yml                # App configuration for Databricks Apps
+├── databricks.yml         # Databricks Asset Bundle configuration
+├── requirements.txt       # Python dependencies
+├── pyproject.toml         # Project metadata
+└── README.md              # This file
+```
+
+## Key Files for DAB & App Deployment
+
+- **`app.py`** - Main application code with database configuration
+- **`app.yml`** - Streamlit app runtime configuration  
+- **`databricks.yml`** - Databricks Asset Bundle definition
+- **`requirements.txt`** - Python package dependencies
+- **`pyproject.toml`** - Project metadata and configuration
+
+## Authentication
+
+The app uses Databricks OAuth authentication to connect to PostgreSQL:
+- No manual token management required
+- Automatic token refresh every 15 minutes
+- Uses your Databricks workspace credentials
 
 ## App Features
 
-- **Sidebar Controls**: Adjust number of rows to display and refresh data
-- **Data Overview**: View total row count and display data in an interactive table
-- **Quick Stats**: Summary statistics and distribution charts
-- **Table Schema**: View column information and data types
-- **Data Filters**: Filter data by multiple criteria
-- **Data Export**: Download filtered data as CSV
+### Connection Scorecard
+Beautiful gradient display showing:
+- Connected database host
+- Database name
+- Schema and table being viewed
+
+### Data View (Left Column)
+- Full table data display
+- Scrollable interface with 600px height
+- Row count indicator
+
+### Statistics Panel (Right Column)
+- Total rows and column count metrics
+- Automatic primary key detection
+- Statistical summary for numeric columns
+
+## Troubleshooting
+
+### Common Issues:
+
+1. **Connection Failed**: 
+   - Verify your database host format (no `https://` prefix)
+   - Ensure you have access to the PostgreSQL instance
+   - Check your Databricks workspace permissions
+
+2. **Table Not Found**:
+   - Verify schema and table names in `DB_CONFIG`
+   - Use the "Test Connection" button to verify connectivity
+   - Check that the table exists in your database
+
+3. **Token Issues**:
+   - The app handles token refresh automatically
+   - If issues persist, restart the app
+
+## Development
+
+To run locally for development:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the Streamlit app
+streamlit run app.py
+```
+
+## License
+
+This project is part of the Databricks Lakebase ecosystem.

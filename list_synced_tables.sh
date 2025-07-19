@@ -42,8 +42,13 @@ if ! command -v psql &> /dev/null; then
 else
     echo "🔍 Querying PostgreSQL for synced tables..."
     
-    # Connection string
-    CONN_STRING="host=instance-8b09a63f-7f3f-4e94-9e3f-a8067c2764c2.database.cloud.databricks.com user=sylvia.schumacher@databricks.com dbname=databricks_postgres port=5432 sslmode=require"
+    # Connection string - use environment variables or defaults
+    DB_HOST_VAR=${DB_HOST}
+    DB_USER_VAR=${DB_USER}
+    DB_NAME_VAR=${DB_NAME}
+    DB_PORT_VAR=${DB_PORT}
+    
+    CONN_STRING="host=${DB_HOST_VAR} user=${DB_USER_VAR} dbname=${DB_NAME_VAR} port=${DB_PORT_VAR} sslmode=require"
     
     # Query 1: Look for tables with 'synced' in the name
     echo "📋 Tables with 'synced' in name:"

@@ -1,11 +1,11 @@
 bundle:
-  name: sylvia-human-review-v3
+  name: ssylvia-app-no2
 
 targets:
   development:
     default: true
     resources:
       apps:
-        human-review-app-v2:
-          name: sylvia-human-review-v3
+        ssylvia-app-no2:
+          name: ssylvia-app-no2
           source_code_path: .

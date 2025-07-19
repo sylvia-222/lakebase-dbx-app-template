@@ -37,10 +37,10 @@ def get_synced_tables_via_postgres() -> List[Dict[str, Any]]:
     """Get synced tables using direct PostgreSQL connection"""
     # Connection parameters from your setup
     conn_params = {
-        'host': 'instance-8b09a63f-7f3f-4e94-9e3f-a8067c2764c2.database.cloud.databricks.com',
-        'user': 'sylvia.schumacher@databricks.com',
-        'dbname': 'databricks_postgres',
-        'port': 5432,
+        'host': os.getenv('DB_HOST'),
+        'user': os.getenv('DB_USER'),
+        'dbname': os.getenv('DB_NAME'),
+        'port': int(os.getenv('DB_PORT')) if os.getenv('DB_PORT') else 5432,
         'sslmode': 'require'
     }
     
@@ -114,10 +114,10 @@ def get_synced_tables_via_postgres() -> List[Dict[str, Any]]:
 def list_all_tables_postgres() -> List[Dict[str, Any]]:
     """List all tables in the PostgreSQL database for reference"""
     conn_params = {
-        'host': 'instance-8b09a63f-7f3f-4e94-9e3f-a8067c2764c2.database.cloud.databricks.com',
-        'user': 'sylvia.schumacher@databricks.com',
-        'dbname': 'databricks_postgres',
-        'port': 5432,
+        'host': os.getenv('DB_HOST'),
+        'user': os.getenv('DB_USER'),
+        'dbname': os.getenv('DB_NAME'),
+        'port': int(os.getenv('DB_PORT')) if os.getenv('DB_PORT') else 5432,
         'sslmode': 'require'
     }
     

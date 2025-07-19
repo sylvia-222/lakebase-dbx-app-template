@@ -12,6 +12,19 @@ __pycache__/
 # OS-specific files
 .DS_Store
 
-# Ignore OLTP database management scripts
-oltp_db_*.sh
-oltp_db_connect.py 
+# Databricks deployment artifacts
+.databricks/bundle/*/terraform/
+.databricks/bundle/*/sync-snapshots/
+
+# Development and testing files
+test_*.py
+*_test.py
+validate_config.py
+
+# Database management scripts (not needed for app)
+create_oltp_instance.py
+list_synced_tables.py
+list_synced_tables.sh
+
+# Old gradio artifacts
+.gradio/ 

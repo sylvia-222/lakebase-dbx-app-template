@@ -1,6 +1,36 @@
-# Lakebase Streamlit App
+# PostgreSQL Data Viewer
 
-A Streamlit application for viewing and exploring PostgreSQL database tables synced with Databricks Lakebase. This app provides a clean interface for database table visualization with statistics and data exploration features.
+A Streamlit application for viewing PostgreSQL synced tables in Databricks using OAuth authentication.
+
+## 🔧 **Before You Start - Required Configuration**
+
+**⚠️ IMPORTANT:** This repository contains placeholder configurations. You MUST update these values for your specific database:
+
+### 📝 **Files to Customize:**
+
+1. **`app.py`** - Update the database configuration:
+   ```python
+   DB_CONFIG = {
+       "host": "your-postgres-instance.database.cloud.databricks.com",  # ← Your PostgreSQL host
+       "port": 5432,  
+       "database": "your_postgres_database",  # ← Your database name
+       "schema": "your_schema",  # ← Your schema name  
+       "table": "your_table"  # ← Your table name
+   }
+   ```
+
+2. **`databricks.yml`** - Change the app name:
+   ```yaml
+   bundle:
+     name: your-app-name  # ← Choose your unique app name
+   ```
+
+3. **`pyproject.toml`** - Update project name:
+   ```toml
+   name = "your-app-name"  # ← Match your app name
+   ```
+
+---
 
 ## Features
 

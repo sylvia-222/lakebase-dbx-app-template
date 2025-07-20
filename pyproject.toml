@@ -1,7 +1,7 @@
 [project]
-name = "ssylvia-app-no2"
+name = "postgres-data-viewer"
 version = "0.1.0"
-description = "Ssylvia App No2 - Data viewer for PostgreSQL synced tables in Databricks."
+description = "PostgreSQL Data Viewer - A Streamlit app for viewing PostgreSQL synced tables in Databricks."
 requires-python = ">=3.11,<3.12" # Specify Python 3.11 explicitly
 dependencies = [
     "databricks-sdk",

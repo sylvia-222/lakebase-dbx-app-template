@@ -1,11 +1,11 @@
 bundle:
-  name: ssylvia-app-no2
+  name: postgres-data-viewer
 
 targets:
   development:
     default: true
     resources:
       apps:
-        ssylvia-app-no2:
-          name: ssylvia-app-no2
+        postgres-data-viewer:
+          name: postgres-data-viewer
           source_code_path: .

@@ -7,11 +7,11 @@ from sqlalchemy import create_engine, event, text
 
 # Database Configuration - Single source of truth
 DB_CONFIG = {
-    "host": "instance-6c327749-9099-438a-bb41-2b449db36668.database.cloud.databricks.com",  # Original working format
+    "host": "your-postgres-instance.database.cloud.databricks.com",  # Replace with your PostgreSQL instance host
     "port": 5432,  
-    "database": "ssylvia_postgres_database",
-    "schema": "testing_schema", 
-    "table": "people_synced"
+    "database": "your_postgres_database",  # Replace with your database name
+    "schema": "your_schema",  # Replace with your schema name
+    "table": "your_table"  # Replace with your table name
 }
 
 # Databricks config.

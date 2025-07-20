@@ -51,8 +51,8 @@ A Streamlit application for viewing PostgreSQL synced tables in Databricks using
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/sylvia-222/test_lakeb.git
-   cd test_lakeb
+   git clone https://github.com/sylvia-222/lakebase-dbx-app-template.git
+   cd lakebase-dbx-app-template
    ```
 
 2. **Configure your database connection** (see [Database Configuration](#database-configuration) below)

@@ -23,8 +23,7 @@ validate_config.py
 
 # Database management scripts (not needed for app)
 create_oltp_instance.py
-list_synced_tables.py
-list_synced_tables.sh
+
 
 # Old gradio artifacts
 .gradio/ 

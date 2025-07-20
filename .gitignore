@@ -22,7 +22,6 @@ test_*.py
 
 
 # Database management scripts (not needed for app)
-create_oltp_instance.py
 
 
 # Old gradio artifacts

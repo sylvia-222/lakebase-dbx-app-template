@@ -19,7 +19,7 @@ __pycache__/
 # Development and testing files
 test_*.py
 *_test.py
-validate_config.py
+
 
 # Database management scripts (not needed for app)
 create_oltp_instance.py
